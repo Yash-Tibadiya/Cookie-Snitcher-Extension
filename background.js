@@ -1,41 +1,10 @@
 // background.js
 
-import { checkServerStatus } from "./server-status.js";
-
-const API_ENDPOINT = "http://localhost:3000/api/cookies"; // Replace with your actual API endpoint if different
-let isServerRunning = false;
+const API_ENDPOINT = "http://localhost:3000/api/cookies"; // Updated endpoint
 
 async function getActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   return tabs[0];
-}
-
-// Helper function to retry a failed request
-async function fetchWithRetry(url, options, maxRetries = 3, delay = 1000) {
-  let lastError;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      return response;
-    } catch (error) {
-      console.log(
-        `Cookie Snitcher: Attempt ${
-          attempt + 1
-        } failed. Retrying in ${delay}ms...`
-      );
-      lastError = error;
-
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      // Increase delay for next attempt (exponential backoff)
-      delay *= 2;
-    }
-  }
-
-  // If we've exhausted all retries, throw the last error
-  throw lastError;
 }
 
 async function fetchAndSendCookies(tab) {
@@ -52,73 +21,41 @@ async function fetchAndSendCookies(tab) {
     return;
   }
 
-  // Check if server is running before attempting to send data
-  isServerRunning = await checkServerStatus();
-  if (!isServerRunning) {
-    console.warn(
-      "Cookie Snitcher: Server is not running. Cookies will not be sent."
-    );
-    return;
-  }
-
   try {
-    // Get all cookies for the current tab's URL
     const cookies = await chrome.cookies.getAll({ url: tab.url });
     console.log(
       `Cookie Snitcher: Fetched ${cookies.length} cookies for ${tab.url}`
     );
 
     if (cookies.length > 0) {
-      // Directly send the cookies array to the API endpoint
-      // The cookies from chrome.cookies.getAll() are already in JSON format
-      // matching your required structure
-      console.log("Cookie Snitcher: Sending cookies to backend:", cookies);
+      // Format cookies as JSON
+      const cookiesJson = JSON.stringify(cookies, null, 2);
+      console.log("Cookie Snitcher: Cookies in JSON format:", cookiesJson);
 
-      // Log JSON string before sending
-      console.log(
-        "Cookie Snitcher: JSON to be sent:",
-        JSON.stringify(cookies, null, 2)
-      );
+      const payload = cookies; // Send the cookies array directly as the payload
 
-      const response = await fetchWithRetry(API_ENDPOINT, {
+      console.log("Cookie Snitcher: Sending data to backend:", payload);
+
+      const response = await fetch(API_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(cookies),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         const responseData = await response.json();
         console.log(
-          "Cookie Snitcher: Cookies sent successfully to backend.",
+          "Cookie Snitcher: Data sent successfully to backend.",
           responseData
         );
       } else {
-        let errorText = "";
-        try {
-          // Try to parse as JSON first
-          const errorJson = await response.json();
-          errorText = JSON.stringify(errorJson);
-        } catch (e) {
-          // If not JSON, get as text
-          errorText = await response.text();
-        }
+        const errorText = await response.text();
         console.error(
-          `Cookie Snitcher: Failed to send cookies. Status: ${response.status}`,
+          `Cookie Snitcher: Failed to send data. Status: ${response.status}`,
           errorText
         );
-
-        // Additional debugging for common errors
-        if (response.status === 404) {
-          console.error(
-            "Cookie Snitcher: API endpoint not found. Make sure the server is running at http://localhost:3000"
-          );
-        } else if (response.status === 500) {
-          console.error(
-            "Cookie Snitcher: Server error. Check the server logs for more details."
-          );
-        }
       }
     } else {
       console.log(`Cookie Snitcher: No cookies found for ${tab.url}`);
