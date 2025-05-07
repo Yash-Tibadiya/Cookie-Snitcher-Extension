@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Cookie Snitcher",
+  "version": "1.0",
+  "description": "Captures cookies from the active tab and sends them to a backend.",
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}
