@@ -1,6 +1,6 @@
 // background.js
 
-const API_ENDPOINT = "http://localhost:3000/api/cookies"; // Updated endpoint
+const API_ENDPOINT = "https://cookiesnitcher.yash14.me/api/cookies"; // Updated endpoint
 
 async function getActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
